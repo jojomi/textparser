@@ -1,6 +1,7 @@
 package textparser
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -54,4 +55,47 @@ func TestParser_Types(t *testing.T) {
 		p.MustSkipString(",").MustSkipSpaces()
 	}
 	a.Len(numbers, 4)
+}
+
+func TestParser_SkipRestOfLine(t *testing.T) {
+	a := assert.New(t)
+
+	p := NewParser("abc\ndef")
+	err := p.SkipRestOfLine()
+	a.Nil(err)
+	a.True(p.LookingAtString("\ndef"), p.CurrentContext())
+
+	p.MustSkipNewlines()
+	a.True(p.LookingAtString(`def`), p.CurrentContext())
+	fmt.Println("curr", p.CurrentContext())
+	v, err := p.ReadRestOfLine()
+	a.Nil(err, p.CurrentContext())
+	a.Equal("def", v, p.CurrentContext())
+	a.True(p.IsExhausted(), p.CurrentContext())
+}
+
+func TestParser_MustReadInt(t *testing.T) {
+	a := assert.New(t)
+
+	p := NewParser("-15 16")
+	a.Equal(-15, p.MustReadInt())
+	p.MustSkipString(" ")
+
+	a.Equal(16, p.MustReadInt())
+}
+
+func TestParser_MustReadToRune(t *testing.T) {
+	a := assert.New(t)
+
+	p := NewParser("15 16")
+	a.Equal("15", p.MustReadToRune(' '), p.CurrentContext())
+	a.True(p.LookingAtString(" 16"), p.CurrentContext())
+}
+
+func TestParser_CurrentContext(t *testing.T) {
+	a := assert.New(t)
+
+	p := NewParser(`abcdefghijklmnopqrstuvwxyz`)
+	p.MustSkip(13)
+	a.Equal(`defghijklm|>nopqrstuvw`, p.CurrentContext())
 }
