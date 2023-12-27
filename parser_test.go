@@ -1,7 +1,6 @@
 package textparser
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -15,7 +14,7 @@ func TestParser_Basic(t *testing.T) {
 	a.Nil(err)
 	a.Equal(`ä|>öü`, p.String())
 
-	a.Equal("öü", p.GetLookingAtString(2))
+	a.Equal("öü", p.MustGetNext(2))
 	a.True(p.LookingAtString("öü"))
 	a.False(p.LookingAtString("ü"))
 	err = p.SkipString("ö")
@@ -67,7 +66,6 @@ func TestParser_SkipRestOfLine(t *testing.T) {
 
 	p.MustSkipNewlines()
 	a.True(p.LookingAtString(`def`), p.CurrentContext())
-	fmt.Println("curr", p.CurrentContext())
 	v, err := p.ReadRestOfLine()
 	a.Nil(err, p.CurrentContext())
 	a.Equal("def", v, p.CurrentContext())
