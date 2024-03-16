@@ -63,6 +63,36 @@ func (x *Parser) ReadToRune(stopRune rune) (string, error) {
 	return x.readRunes(pos - x.position)
 }
 
+func (x *Parser) MustReadWord() string {
+	value, err := x.ReadWord()
+	if err != nil {
+		panic(err)
+	}
+	return value
+}
+
+// ReadWord reads exactly one word of input. Stops at space, newline and end of input. Error if the input end is already reached.
+func (x *Parser) ReadWord() (string, error) {
+	if x.IsExhausted() {
+		return "", fmt.Errorf("could not read on, reader is exhausted")
+	}
+	pos := x.position + 1
+	for {
+		if len(x.input) <= pos {
+			break
+		}
+		value := x.input[pos]
+		if value == ' ' {
+			break
+		}
+		if value == '\n' {
+			break
+		}
+		pos++
+	}
+	return x.readRunes(pos - x.position)
+}
+
 func (x *Parser) readRunes(runeCount int) (string, error) {
 	// TODO check length
 	value := x.input[x.position : x.position+runeCount]
