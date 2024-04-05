@@ -60,3 +60,15 @@ func (x *Parser) GetNextRune() (rune, error) {
 	}
 	return x.input[x.position], nil
 }
+
+func (x *Parser) MustGetNextWord() string {
+	// save position
+	pos := x.position
+
+	result := x.MustReadWord()
+
+	// reset position
+	x.position = pos
+
+	return result
+}
