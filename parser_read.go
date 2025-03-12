@@ -147,6 +147,18 @@ func (x *Parser) MustReadRestOfLine() string {
 	return result
 }
 
+func (x *Parser) ReadRestOfInput() (string, error) {
+	return x.ReadToPositionString(len(x.input))
+}
+
+func (x *Parser) MustReadRestOfInput() string {
+	result, err := x.ReadRestOfInput()
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
 func (x *Parser) ReadInt() (int, error) {
 	var (
 		num    strings.Builder
@@ -198,7 +210,7 @@ func (x *Parser) MustReadInt() int {
 }
 
 func (x *Parser) ReadToPositionString(newPosition int) (string, error) {
-	if newPosition >= len(x.input) {
+	if newPosition > len(x.input) {
 		return "", EndOfInputError{}
 	}
 	content := x.input[x.position:newPosition]
@@ -228,6 +240,29 @@ func (x *Parser) ReadToAnyString(limitStrings []string) (string, error) {
 
 func (x *Parser) MustReadToAnyString(limitStrings []string) string {
 	content, err := x.ReadToAnyString(limitStrings)
+	if err != nil {
+		panic(err)
+	}
+	return content
+}
+
+func (x *Parser) ReadToAnyStringOrEnd(limitStrings []string) (string, error) {
+	newPos, err := x.findAnyNext(limitStrings)
+	if err != nil {
+		if errors.Is(err, EndOfInputError{}) {
+			return x.ReadRestOfInput()
+		}
+		return "", err
+	}
+	content, err := x.ReadToPositionString(newPos)
+	if err != nil {
+		return "", err
+	}
+	return content, nil
+}
+
+func (x *Parser) MustReadToAnyStringOrEnd(limitStrings []string) string {
+	content, err := x.ReadToAnyStringOrEnd(limitStrings)
 	if err != nil {
 		panic(err)
 	}
