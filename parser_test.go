@@ -90,6 +90,26 @@ func TestParser_MustReadToRune(t *testing.T) {
 	a.True(p.LookingAtString(" 16"), p.CurrentContext())
 }
 
+func TestParser_MustReadToAnyString(t *testing.T) {
+	a := assert.New(t)
+
+	p := NewParser("a > b = 8")
+	a.Equal("a ", p.MustReadToAnyString([]string{">", "= "}), p.CurrentContext())
+	a.True(p.LookingAtString("> b"), p.CurrentContext())
+
+	p = NewParser("a = b > 8")
+	a.Equal("a ", p.MustReadToAnyString([]string{">", "= "}), p.CurrentContext())
+	a.True(p.LookingAtString("= b"), p.CurrentContext())
+}
+
+func TestParser_MustReadToPositionString(t *testing.T) {
+	a := assert.New(t)
+
+	p := NewParser("a or b")
+	a.Equal("a o", p.MustReadToPositionString(3), p.CurrentContext())
+	a.True(p.LookingAtString("r b"), p.CurrentContext())
+}
+
 func TestParser_CurrentContext(t *testing.T) {
 	a := assert.New(t)
 

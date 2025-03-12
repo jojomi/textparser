@@ -196,3 +196,40 @@ func (x *Parser) MustReadInt() int {
 	}
 	return value
 }
+
+func (x *Parser) ReadToPositionString(newPosition int) (string, error) {
+	if newPosition >= len(x.input) {
+		return "", EndOfInputError{}
+	}
+	content := x.input[x.position:newPosition]
+	x.position = newPosition
+	return string(content), nil
+}
+
+func (x *Parser) MustReadToPositionString(newPosition int) string {
+	value, err := x.ReadToPositionString(newPosition)
+	if err != nil {
+		panic(err)
+	}
+	return value
+}
+
+func (x *Parser) ReadToAnyString(limitStrings []string) (string, error) {
+	newPos, err := x.findAnyNext(limitStrings)
+	if err != nil {
+		return "", err
+	}
+	content, err := x.ReadToPositionString(newPos)
+	if err != nil {
+		return "", err
+	}
+	return content, nil
+}
+
+func (x *Parser) MustReadToAnyString(limitStrings []string) string {
+	content, err := x.ReadToAnyString(limitStrings)
+	if err != nil {
+		panic(err)
+	}
+	return content
+}
