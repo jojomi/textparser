@@ -5,8 +5,9 @@ import (
 )
 
 type Parser struct {
-	input    []rune
-	position int
+	input                []rune
+	position             int
+	captureStartPosition int
 }
 
 func NewParser(input string) *Parser {
