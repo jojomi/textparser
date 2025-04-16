@@ -93,6 +93,34 @@ func (x *Parser) SkipToString(expected string) error {
 	return nil
 }
 
+func (x *Parser) MustSkipToWhitespace() *Parser {
+	err := x.SkipToWhitespace()
+	if err != nil {
+		panic(err)
+	}
+	return x
+}
+
+func (x *Parser) SkipToWhitespace() error {
+	var err error
+	for {
+		if x.IsExhausted() {
+			return EndOfInputError{}
+		}
+
+		if x.LookingAtWhitespace() {
+			break
+		}
+
+		err = x.Skip(1)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (x *Parser) SkipSpaces() error {
 	return x.SkipAny([]rune{' '})
 }

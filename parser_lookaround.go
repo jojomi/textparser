@@ -22,6 +22,17 @@ func (x *Parser) LookingAtRune(r rune) bool {
 	return result == r
 }
 
+func (x *Parser) LookingAtWhitespace() bool {
+	nextRune, err := x.GetNextRune()
+	if errors.Is(err, EndOfInputError{}) {
+		return false
+	}
+	if nextRune == ' ' || nextRune == '\t' || nextRune == '\r' || nextRune == '\n' {
+		return true
+	}
+	return false
+}
+
 func (x *Parser) MustGetNext(runeCount int) string {
 	result, err := x.GetNext(runeCount)
 	if err != nil {
