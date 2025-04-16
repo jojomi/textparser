@@ -105,7 +105,7 @@ func (x *Parser) SkipToWhitespace() error {
 	var err error
 	for {
 		if x.IsExhausted() {
-			return EndOfInputError{}
+			return nil
 		}
 
 		if x.LookingAtWhitespace() {
@@ -114,6 +114,9 @@ func (x *Parser) SkipToWhitespace() error {
 
 		err = x.Skip(1)
 		if err != nil {
+			if errors.Is(err, EndOfInputError{}) {
+				return nil
+			}
 			return err
 		}
 	}

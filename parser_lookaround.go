@@ -2,6 +2,7 @@ package textparser
 
 import (
 	"errors"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -31,6 +32,25 @@ func (x *Parser) LookingAtWhitespace() bool {
 		return true
 	}
 	return false
+}
+
+func (x *Parser) LookingAtDigit() bool {
+	nextRune, err := x.GetNextRune()
+	if errors.Is(err, EndOfInputError{}) {
+		return false
+	}
+	if nextRune >= '0' && nextRune <= '9' {
+		return true
+	}
+	return false
+}
+
+func (x *Parser) LookingAtLetter() bool {
+	nextRune, err := x.GetNextRune()
+	if errors.Is(err, EndOfInputError{}) {
+		return false
+	}
+	return unicode.IsLetter(nextRune)
 }
 
 func (x *Parser) MustGetNext(runeCount int) string {
