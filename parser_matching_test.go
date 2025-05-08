@@ -127,3 +127,46 @@ func TestParser_MustReadToMatching(t *testing.T) {
 		})
 	}
 }
+
+func TestParser_ReadToMatchingEscaped(t *testing.T) {
+	type fields struct {
+		input    []rune
+		position int
+	}
+	type args struct {
+		open   rune
+		close  rune
+		escape rune
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   string
+	}{
+		{
+			name: "basic",
+			fields: fields{
+				input:    []rune(`my "best \" attempt" is`),
+				position: 4,
+			},
+			args: args{
+				'"',
+				'"',
+				'\\',
+			},
+			want: `best " attempt`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			x := &Parser{
+				input:    tt.fields.input,
+				position: tt.fields.position,
+			}
+			actual, err := x.ReadToMatchingEscaped(tt.args.open, tt.args.close, tt.args.escape)
+			assert.Nil(t, err)
+			assert.Equalf(t, tt.want, actual, "ReadToMatchingEscaped(%v, %v, %v)", tt.args.open, tt.args.close, tt.args.escape)
+		})
+	}
+}
