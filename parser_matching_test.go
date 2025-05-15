@@ -1,8 +1,9 @@
 package textparser
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParser_MustReadToMatching(t *testing.T) {
@@ -15,10 +16,11 @@ func TestParser_MustReadToMatching(t *testing.T) {
 		close rune
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
+		name          string
+		fields        fields
+		args          args
+		want          string
+		wantLookingAt string
 	}{
 		{
 			name: "basic",
@@ -78,7 +80,8 @@ func TestParser_MustReadToMatching(t *testing.T) {
 				'[',
 				']',
 			},
-			want: "ab",
+			want:          "ab",
+			wantLookingAt: "]c[de]f)",
 		},
 		{
 			name: "nested",
@@ -90,7 +93,8 @@ func TestParser_MustReadToMatching(t *testing.T) {
 				'[',
 				']',
 			},
-			want: "a[b]c",
+			want:          "a[b]c",
+			wantLookingAt: "]def)",
 		},
 		{
 			name: "not inside",
@@ -102,7 +106,8 @@ func TestParser_MustReadToMatching(t *testing.T) {
 				'[',
 				']',
 			},
-			want: "",
+			want:          "",
+			wantLookingAt: "]def",
 		},
 		{
 			name: "quote (same open and close rune)",
@@ -124,6 +129,62 @@ func TestParser_MustReadToMatching(t *testing.T) {
 				position: tt.fields.position,
 			}
 			assert.Equalf(t, tt.want, x.MustReadToMatching(tt.args.open, tt.args.close), "ReadToMatching(%v, %v)", tt.args.open, tt.args.close)
+			assert.Truef(t, x.LookingAtString(tt.wantLookingAt), "wrong position, looking at %v", x.CurrentContext())
+		})
+	}
+}
+
+func TestParser_MustReadToMatchingSkipDelims(t *testing.T) {
+	type fields struct {
+		input    []rune
+		position int
+	}
+	type args struct {
+		open  rune
+		close rune
+	}
+	tests := []struct {
+		name          string
+		fields        fields
+		args          args
+		want          string
+		wantLookingAt string
+	}{
+		{
+			name: "basic",
+			fields: fields{
+				input:    []rune("(abc)d"),
+				position: 0,
+			},
+			args: args{
+				'(',
+				')',
+			},
+			want:          "abc",
+			wantLookingAt: "d",
+		},
+		{
+			name: "quote (same open and close rune)",
+			fields: fields{
+				input:    []rune("he said 'yes', sir"),
+				position: 8,
+			},
+			args: args{
+				'\'',
+				'\'',
+			},
+			want:          "yes",
+			wantLookingAt: ", sir",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			x := &Parser{
+				input:    tt.fields.input,
+				position: tt.fields.position,
+			}
+			assert.Equalf(t, tt.want, x.MustReadToMatchingSkipDelims(tt.args.open, tt.args.close), "ReadToMatchingSkipDelims(%v, %v)", tt.args.open, tt.args.close)
+			assert.Truef(t, x.LookingAtString(tt.wantLookingAt), "wrong position, looking at %v", x.CurrentContext())
 		})
 	}
 }
@@ -139,11 +200,40 @@ func TestParser_ReadToMatchingEscaped(t *testing.T) {
 		escape rune
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
+		name          string
+		fields        fields
+		args          args
+		want          string
+		wantLookingAt string
 	}{
+		{
+			name: "nothing",
+			fields: fields{
+				input:    []rune(`my "" is`),
+				position: 4,
+			},
+			args: args{
+				'"',
+				'"',
+				'\\',
+			},
+			want:          ``,
+			wantLookingAt: `" is`,
+		},
+		{
+			name: "escape only",
+			fields: fields{
+				input:    []rune(`my (\)) is`),
+				position: 4,
+			},
+			args: args{
+				'(',
+				')',
+				'\\',
+			},
+			want:          `)`,
+			wantLookingAt: `) is`,
+		},
 		{
 			name: "basic",
 			fields: fields{
@@ -155,7 +245,8 @@ func TestParser_ReadToMatchingEscaped(t *testing.T) {
 				'"',
 				'\\',
 			},
-			want: `best " attempt`,
+			want:          `best " attempt`,
+			wantLookingAt: `" is`,
 		},
 	}
 	for _, tt := range tests {
@@ -167,6 +258,81 @@ func TestParser_ReadToMatchingEscaped(t *testing.T) {
 			actual, err := x.ReadToMatchingEscaped(tt.args.open, tt.args.close, tt.args.escape)
 			assert.Nil(t, err)
 			assert.Equalf(t, tt.want, actual, "ReadToMatchingEscaped(%v, %v, %v)", tt.args.open, tt.args.close, tt.args.escape)
+			assert.Truef(t, x.LookingAtString(tt.wantLookingAt), "wrong position, looking at %v", x.CurrentContext())
+		})
+	}
+}
+
+func TestParser_ReadToMatchingEscapedSkipDelims(t *testing.T) {
+	type fields struct {
+		input    []rune
+		position int
+	}
+	type args struct {
+		open   rune
+		close  rune
+		escape rune
+	}
+	tests := []struct {
+		name          string
+		fields        fields
+		args          args
+		want          string
+		wantLookingAt string
+	}{
+		{
+			name: "nothing",
+			fields: fields{
+				input:    []rune(`my "" is`),
+				position: 3,
+			},
+			args: args{
+				'"',
+				'"',
+				'\\',
+			},
+			want:          ``,
+			wantLookingAt: ` is`,
+		},
+		{
+			name: "escape only",
+			fields: fields{
+				input:    []rune(`my (\)) is`),
+				position: 3,
+			},
+			args: args{
+				'(',
+				')',
+				'\\',
+			},
+			want:          `)`,
+			wantLookingAt: ` is`,
+		},
+		{
+			name: "basic",
+			fields: fields{
+				input:    []rune(`my "best \" attempt" is`),
+				position: 3,
+			},
+			args: args{
+				'"',
+				'"',
+				'\\',
+			},
+			want:          `best " attempt`,
+			wantLookingAt: ` is`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			x := &Parser{
+				input:    tt.fields.input,
+				position: tt.fields.position,
+			}
+			actual, err := x.ReadToMatchingEscapedSkipDelims(tt.args.open, tt.args.close, tt.args.escape)
+			assert.Nil(t, err)
+			assert.Equalf(t, tt.want, actual, "ReadToMatchingEscapedSkipDelims(%v, %v, %v)", tt.args.open, tt.args.close, tt.args.escape)
+			assert.Truef(t, x.LookingAtString(tt.wantLookingAt), "wrong position, looking at %v", x.CurrentContext())
 		})
 	}
 }
